@@ -1,4 +1,4 @@
-package cn.lddsdu;
+package cn.lddsdu.failed;
 
 /**
  * Created by jack on 18/3/17.

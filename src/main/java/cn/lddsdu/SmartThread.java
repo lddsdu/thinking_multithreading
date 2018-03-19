@@ -1,27 +1,28 @@
 package cn.lddsdu;
 
 /**
- * Created by jack on 18/3/17.
+ * Created by jack on 18/3/18.
  */
 public class SmartThread extends Thread{
     private ThreadPool threadPool;
-    private Task task;
-    private static int num = 0;
 
     public SmartThread(ThreadPool threadPool) {
-        System.out.println("create thread"+(++num));
         this.threadPool = threadPool;
-    }
-
-    public void setTask(Task task){
-        this.task = task;
     }
 
     @Override
     public void run() {
-        task.run();
-        //在task执行完成之后，将自己还回到threadpool中去
-        System.out.println("返回到threadpool中");
-        threadPool.backThread(this);
+        while(true){
+            //从taskqueue中拿任务task  1000ms 没有取到数据，则停止
+            Runnable task  = threadPool.gettask();
+            if(task != null){
+                task.run();
+            }else{
+                if(threadPool.currentmaxcore()){
+                    threadPool.subcurrenpoolsize();
+                    break;
+                };
+            }
+        }
     }
 }

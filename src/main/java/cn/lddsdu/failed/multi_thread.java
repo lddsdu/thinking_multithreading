@@ -1,10 +1,12 @@
-package cn.lddsdu;
+package cn.lddsdu.failed;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 /**
  * Created by jack on 18/3/17.
+ *
+ * 暂没有考虑线程安全
  */
 
 public class multi_thread {

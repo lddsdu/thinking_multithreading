@@ -1,50 +1,89 @@
 package cn.lddsdu;
 
-import java.util.Queue;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 /**
- * Created by jack on 18/3/17.
+ * Created by jack on 18/3/18.
+ *
+ * 暂不考虑线程安全的问题
  */
 public class ThreadPool {
-    private int size;
-    private BlockingQueue<SmartThread> SmartThreads;
+    private int corepoolsize;
+    private int maxiumpoolsize;
+    private int currentpoolsize;
+    private BlockingQueue<Runnable> taskQueue;
+    private int maxTask = 100;
+    private fullHandler handler;
 
-    public ThreadPool(int size) {
-        this.size = size;
-        SmartThreads = new ArrayBlockingQueue<SmartThread>(size);
-        for (int i = 0 ; i < size ; i++){
-            SmartThread sm = new SmartThread(this);
-            SmartThreads.add(sm);
+    private static Logger logger = Logger.getLogger(String.valueOf(ThreadPool.class.getClass()));
+
+    public void subcurrenpoolsize(){
+        currentpoolsize --;
+    }
+
+    public boolean currentmaxcore(){
+        return currentpoolsize > corepoolsize;
+    }
+
+    public Runnable gettask(){
+        Runnable runnable;
+        try {
+            runnable = taskQueue.poll(10000, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            return null;
         }
+        return runnable;
     }
 
-    public void backThread(SmartThread sm){
-        SmartThreads.add(sm);
+    public ThreadPool(int corepoolsize, int maxiumpoolsize, BlockingQueue<Runnable> taskQueue,fullHandler handler) {
+        currentpoolsize = 0;
+        this.corepoolsize = corepoolsize;
+        this.maxiumpoolsize = maxiumpoolsize;
+        this.taskQueue = taskQueue;
+        this.handler = handler;
     }
 
-    public void exec(BlockingQueue<Task> taskqueue)  {
-        while(!taskqueue.isEmpty()){
 
-            SmartThread sm = null;
-            try {
-                sm = SmartThreads.take();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+    public void execute(Runnable runnable)  {
+        /*    ***添加处理的逻辑***
+        if(基本线程池已经满了){
+            if(工作队列已经满了){
+                if(整个线程池已经满了){
+                    交给饱和策略;
+                }else{
+                    创建新的工作线程;
+                }
+            }else{
+                任务存进工作队列;
             }
-
-            Task task = taskqueue.poll();
-
-            sm.start();//一次严重的翻车事故,没有了解线程的和线程对象的实质。start()重复调用显然会出现错误
-
-            /*
-            思考：关于线程的调用问题
-            线程对象 thread ，为了便于开创新的线程，java中使用对象的形式来描述，使用调用其start方法来启动线程
-            注意：在启动子线程之后祝线程便不再可以直接操作对象来指挥这个子线程来做什么事情了，其变得"不可控",其
-            抛出的错误也没有办法在主线程的代码中来catch到。
-             */
-
+        }else{
+            创建新的线程;
         }
+         */
+        if(currentpoolsize >= corepoolsize){
+            if(taskQueue.size() >= maxTask){
+                if(currentpoolsize >= maxiumpoolsize){
+                    //开始handle这个情况
+                    this.handler.handle();
+                }else{
+                    currentpoolsize ++;
+                    new SmartThread(this).start();
+                }
+            }else{
+                try {
+                    taskQueue.put(runnable);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException("taskqueue add error because of interrupt");
+                }
+            }
+        }else{
+            currentpoolsize ++;
+            new SmartThread(this).start();
+        }
+
+
     }
 }
